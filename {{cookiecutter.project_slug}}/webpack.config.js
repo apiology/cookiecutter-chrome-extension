@@ -4,6 +4,10 @@ import { createRequire } from 'module';
 {%- endif %}
 import CopyPlugin from 'copy-webpack-plugin';
 
+{%- if cookiecutter.asana_api == 'yes' %}
+const require = createRequire(import.meta.url);
+{%- endif %}
+
 export default {
   entry: {
     background: ['./src/background.ts'],
