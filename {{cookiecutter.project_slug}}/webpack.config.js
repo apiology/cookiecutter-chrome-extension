@@ -1,8 +1,8 @@
 {%- if cookiecutter.asana_api == 'yes' %}
 import webpack from 'webpack';
+import { createRequire } from 'module';
 {%- endif %}
 import CopyPlugin from 'copy-webpack-plugin';
-import { createRequire } from 'module';
 
 export default {
   entry: {
