@@ -1,13 +1,13 @@
-{%- if cookiecutter.asana_api == 'yes' %}
+{% if cookiecutter.asana_api == 'yes' -%}
 import webpack from 'webpack';
 import { createRequire } from 'module';
-{%- endif %}
+{% endif -%}
 import CopyPlugin from 'copy-webpack-plugin';
 
-{%- if cookiecutter.asana_api == 'yes' %}
+{% if cookiecutter.asana_api == 'yes' -%}
 const require = createRequire(import.meta.url);
-{%- endif %}
 
+{% endif -%}
 export default {
   entry: {
     background: ['./src/background.ts'],
