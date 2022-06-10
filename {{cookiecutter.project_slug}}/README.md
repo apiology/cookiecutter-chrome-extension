@@ -32,7 +32,7 @@ Not created, maintained, reviewed, approved, or endorsed by Asana, Inc.
 {% endif %}
 ## Installing Chrome Extension
 
-This isn't in the Chrome App Store - see [./DEVELOPMENT.md] for how to run from a local checkout.
+This isn't in the Chrome App Store - see [DEVELOPMENT.md](./DEVELOPMENT.md) for how to run from a local checkout.
 
 ## Contributions
 
