@@ -1,7 +1,5 @@
-.PHONY: clean test help typecheck quality
+.PHONY: build-typecheck bundle_install cicoverage citypecheck citest citypecoverage clean clean-build clean-coverage clean-pyc clean-typecheck clean-typecoverage coverage default gem_dependencies help overcommit quality report-coverage report-coverage-to-codecov test typecheck typecoverage update_from_cookiecutter
 .DEFAULT_GOAL := default
-
-BAKE_OPTIONS=--no-input
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -14,17 +12,64 @@ for line in sys.stdin:
 endef
 export PRINT_HELP_PYSCRIPT
 
-default: clean-coverage test coverage clean-typecoverage typecheck typecoverage quality ## run default typechecking, tests and quality
+help:
+	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-typecheck: ## validate types in code and configuration
+default: clean-typecoverage typecheck typecoverage clean-coverage test coverage quality ## run default typechecking, tests and quality
+
+build-typecheck: types.installed  ## Fetch information that type checking depends on
+
+clean-typecheck: ## Refresh the easily-regenerated information that type checking depends on
+	@rm -fr .mypy_cache
+
+realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
+
+realclean: clean realclean-typecheck
+	rm -fr vendor .bundle
+	rm .make/*
+	rm *.installed
+
+# https://app.circleci.com/pipelines/github/apiology/cookiecutter-pypackage/281/workflows/b85985a9-16d0-42c4-93d4-f965a111e090/jobs/366
+typecheck: build-typecheck ## run mypy against project
+	mypy --cobertura-xml-report typecover --html-report typecover hooks tests
+
+types.installed: Gemfile.lock Gemfile.lock.installed ## Install Ruby dependencies
+	touch types.installed
 
 citypecheck: typecheck ## Run type check from CircleCI
 
-typecoverage: typecheck ## Run type checking and then ratchet coverage in metrics/
+typecoverage: typecheck ## Run type checking and then ratchet coverage in metrics/mypy_high_water_mark
+	@python setup.py mypy_ratchet
 
-clean-typecoverage: ## Clean out type-related coverage previous results to avoid flaky results
+clean-typecoverage: ## Clean out mypy previous results to avoid flaky results
 
-citypecoverage: typecoverage ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
+ratchet-typecoverage: ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
+	@echo "Looking for un-checked-in type coverage metrics..."
+	@git status --porcelain metrics/mypy_high_water_mark
+	@test -z "$$(git status --porcelain metrics/mypy_high_water_mark)"
+
+citypecoverage: ratchet-typecoverage ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
+
+clean: clean-build clean-pyc clean-test clean-mypy clean-coverage ## remove all build, test, coverage and Python artifacts
+
+clean-build: ## remove build artifacts
+	rm -fr build/
+	rm -fr dist/
+	rm -fr .eggs/
+	find . -name '*.egg-info' -exec rm -fr {} +
+	find . -name '*.egg' -exec rm -f {} +
+
+clean-pyc: ## remove Python file artifacts
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
+
+clean-test: ## remove test and coverage artifacts
+	rm -fr .tox/
+	rm -f .coverage
+	rm -fr htmlcov/
+	rm -fr .pytest_cache
 
 requirements_dev.txt.installed: requirements_dev.txt
 	pip install -q --disable-pip-version-check -r requirements_dev.txt
@@ -32,31 +77,35 @@ requirements_dev.txt.installed: requirements_dev.txt
 
 pip_install: requirements_dev.txt.installed ## Install Python dependencies
 
-# bundle install doesn't get run here so that we can catch it below in
-# fresh-checkout and fresh-rbenv cases
 Gemfile.lock: Gemfile
+	bundle lock
 
-# Ensure any Gemfile.lock changes ensure a bundle is installed.
-Gemfile.lock.installed: Gemfile.lock
+gem_dependencies:
+
+# Ensure any Gemfile.lock changes, even pulled form git, ensure a
+# bundle is installed.
+Gemfile.lock.installed: Gemfile.lock Gemfile
 	bundle install
 	touch Gemfile.lock.installed
 
 bundle_install: Gemfile.lock.installed ## Install Ruby dependencies
 
-clean: ## remove all built artifacts
+lint: ## check style with flake8
+	flake8 hooks tests
+
+test-all: ## run tests on every Python version with tox
+	tox
 
 test: ## run tests quickly
-	pytest --maxfail=0
+	pytest --maxfail=1 tests/test_bake_project.py --capture=no -v
 
-citest: test ## Run unit tests from CircleCI
+citest:  ## Run unit tests from CircleCI
+	pytest --maxfail=1 tests/test_bake_project.py -v
 
 overcommit: ## run precommit quality checks
 	bundle exec overcommit --run
 
 quality: overcommit ## run precommit quality checks
-
-help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 bake: ## generate project using defaults
 	cookiecutter $(BAKE_OPTIONS) . --overwrite-if-exists
@@ -72,9 +121,15 @@ clean-coverage: ## Clean out previous output of test coverage to avoid flaky res
 
 coverage: test report-coverage ## check code coverage
 
-report-coverage: test ## Report summary of coverage to stdout, and generate HTML, XML coverage report
+report-coverage: citest ## Report summary of coverage to stdout, and generate HTML, XML coverage report
 
 report-coverage-to-codecov: report-coverage ## use codecov.io for PR-scoped code coverage reports
+
+update_apt: .make/apt_updated
+
+.make/apt_updated:
+	sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+	touch .make/apt_updated
 
 cicoverage: report-coverage-to-codecov ## check code coverage, then report to codecov
 
@@ -82,9 +137,15 @@ update_from_cookiecutter: ## Bring in changes from template project used to crea
 	bundle exec overcommit --uninstall
 	cookiecutter_project_upgrader --help >/dev/null
 	IN_COOKIECUTTER_PROJECT_UPGRADER=1 cookiecutter_project_upgrader || true
-	git checkout cookiecutter-template && git push && git checkout main
-	git checkout main && git pull && git checkout -b update-from-cookiecutter-$$(date +%Y-%m-%d-%H%M)
+	git checkout cookiecutter-template && git push --no-verify
+	git checkout main; overcommit --sign && overcommit --sign pre-commit && git checkout main && git pull && git checkout -b update-from-cookiecutter-$$(date +%Y-%m-%d-%H%M)
 	git merge cookiecutter-template || true
+	git checkout --ours Gemfile.lock || true
+	# update frequently security-flagged gems while we're here
+	bundle update --conservative rexml || true
+	make build-typecheck
+	git add Gemfile.lock || true
+	bundle install || true
 	bundle exec overcommit --install || true
 	@echo
 	@echo "Please resolve any merge conflicts below and push up a PR with:"
