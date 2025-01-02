@@ -15,6 +15,100 @@ export PRINT_HELP_PYSCRIPT
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
+default: clean-typecoverage typecheck typecoverage package clean-coverage test coverage overcommit_branch quality ## run default typechecking, tests and quality
+
+SOURCE_FILE_GLOBS = ['{src}/**/*.ts']
+
+SOURCE_FILES := $(shell ruby -e "puts Dir.glob($(SOURCE_FILE_GLOBS))")
+
+webpack: ## run webpack and tie together modules for use by browser
+	npx webpack
+
+chrome-extension-start: ## run webpack continuously and watch files
+	npm run chrome-extension-start
+
+build-chrome-extension: webpack
+
+build: build-chrome-extension
+
+package: package-chrome-extension
+
+package-chrome-extension: build-chrome-extension
+	cd dist/chrome-extension && zip -r ../../package.zip .
+
+typecheck: build-typecheck webpack ## validate types in code and configuration
+	jsonschema --instance static/chrome-extension/manifest.json docs/chrome-manifest-v3-schema.json
+
+types.installed: Gemfile.lock Gemfile.lock.installed ## Ensure typechecking dependencies are in place
+	touch types.installed
+
+build-typecheck: types.installed  ## Fetch information that type checking depends on
+
+clean-typecheck: ## Refresh the easily-regenerated information that type checking depends on
+	rm -f types.installed
+	echo all clear
+
+realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
+
+realclean: clean realclean-typecheck
+	rm -fr vendor .bundle
+	rm .make/*
+	rm *.installed
+
+citypecheck: typecheck ## Run type check from CircleCI
+
+typecoverage: typecheck ## Run type checking and then ratchet coverage in metrics/
+
+clean-typecoverage: ## Clean out type-related coverage previous results to avoid flaky results
+
+citypecoverage: typecoverage ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
+
+config/env: config/env.1p  ## Create file suitable for docker-compose usage
+	cat config/env.1p | cut -d= -f1 > config/env
+
+requirements_dev.txt.installed: requirements_dev.txt
+	pip install -q --disable-pip-version-check -r requirements_dev.txt
+	touch requirements_dev.txt.installed
+
+pip_install: requirements_dev.txt.installed ## Install Python dependencies
+
+Gemfile.lock: Gemfile
+	make .bundle/config
+	bundle lock
+
+.bundle/config:
+	touch .bundle/config
+
+gem_dependencies: .bundle/config
+
+# Ensure any Gemfile.lock changes, even pulled from git, ensure a
+# bundle is installed.
+Gemfile.lock.installed: Gemfile vendor/.keep
+	touch Gemfile.lock.installed
+
+vendor/.keep: Gemfile.lock
+	make gem_dependencies
+	bundle install
+	touch vendor/.keep
+
+bundle_install: Gemfile.lock.installed ## Install Ruby dependencies
+
+clean: clean-typecoverage clean-typecheck clean-coverage ## remove all built artifacts
+	rm -fr package.zip dist/chrome-extension/* || true
+
+test: ## run tests quickly
+	npm test
+
+citest: test ## Run unit tests from CircleCI
+
+overcommit: ## run precommit quality checks
+	bundle exec overcommit --run
+
+overcommit_branch: ## run precommit quality checks only on changed files
+	@bundle exec overcommit_branch
+
+quality: overcommit ## run precommit quality checks
+
 repl: ## Bring up an interactive JavaScript prompt
 {%- if cookiecutter.asana_api == 'yes' %}
 	@echo "const asana = require('asana');"
@@ -34,80 +128,6 @@ repl: ## Bring up an interactive JavaScript prompt
 	node
 {%- endif %}
 
-webpack: ## run webpack and tie together modules for use by browser
-	npx webpack
-
-chrome-extension-start: ## run webpack continuously and watch files
-	npm run chrome-extension-start
-
-build-chrome-extension: webpack
-
-default: clean-typecoverage typecheck typecoverage package clean-coverage test coverage quality ## run default typechecking and tests, then package up and check code quality
-
-build: build-chrome-extension
-
-package: package-chrome-extension
-
-package-chrome-extension: build-chrome-extension
-	cd dist/chrome-extension && zip -r ../../package.zip .
-
-typecheck: build-typecheck webpack ## validate types in code and configuration
-	jsonschema --instance static/chrome-extension/manifest.json docs/chrome-manifest-v3-schema.json
-
-build-typecheck: types.installed  ## Fetch information that type checking depends on
-
-clean-typecheck: ## Refresh the easily-regenerated information that type checking depends on
-
-realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
-
-realclean: clean realclean-typecheck
-	rm -fr vendor .bundle
-	rm .make/*
-	rm *.installed
-
-types.installed: Gemfile.lock Gemfile.lock.installed ## Install Ruby dependencies
-	touch types.installed
-
-citypecheck: typecheck ## Run type check from CircleCI
-
-typecoverage: typecheck ## Run type checking and then ratchet coverage in metrics/
-
-clean-typecoverage: ## Clean out type-related coverage previous results to avoid flaky results
-
-citypecoverage: typecoverage ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
-
-requirements_dev.txt.installed: requirements_dev.txt
-	pip install -q --disable-pip-version-check -r requirements_dev.txt
-	touch requirements_dev.txt.installed
-
-pip_install: requirements_dev.txt.installed ## Install Python dependencies
-
-Gemfile.lock: Gemfile
-	bundle lock
-
-gem_dependencies:
-
-# Ensure any Gemfile.lock changes, even pulled form git, ensure a
-# bundle is installed.
-Gemfile.lock.installed: Gemfile.lock Gemfile
-	bundle install
-	touch Gemfile.lock.installed
-
-bundle_install: Gemfile.lock.installed ## Install Ruby dependencies
-
-clean: ## remove all built artifacts
-	rm -fr package.zip dist/chrome-extension/* || true
-
-test: ## run tests quickly
-	npm test
-
-citest: test ## Run unit tests from CircleCI
-
-overcommit: ## run precommit quality checks
-	bundle exec overcommit --run
-
-quality: overcommit ## run precommit quality checks
-
 clean-coverage: ## Clean out previous output of test coverage to avoid flaky results from previous runs
 
 coverage: test report-coverage ## check code coverage
@@ -125,7 +145,7 @@ update_apt: .make/apt_updated
 	sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
 	touch .make/apt_updated
 
-cicoverage: report-coverage-to-codecov ## check code coverage, then report to codecov
+cicoverage: citest report-coverage-to-codecov ## check code coverage
 
 update_from_cookiecutter: ## Bring in changes from template project used to create this repo
 	bundle exec overcommit --uninstall
@@ -138,8 +158,8 @@ update_from_cookiecutter: ## Bring in changes from template project used to crea
 	# update frequently security-flagged gems while we're here
 	bundle update --conservative rexml || true
 	make build-typecheck
-	git add Gemfile.lock || true
 	bundle install || true
+	git add Gemfile.lock || true
 	bundle exec overcommit --install || true
 	@echo
 	@echo "Please resolve any merge conflicts below and push up a PR with:"
