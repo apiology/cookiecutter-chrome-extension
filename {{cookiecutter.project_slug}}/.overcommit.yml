@@ -32,6 +32,17 @@ PreCommit:
       - '**/*.tsx'
   FixMe:
     enabled: true
+    on_warn: fail
+    exclude:
+      # sorbet sure likes to crash
+      - 'core.*'
+      # don't freak out over line below
+      - '.overcommit.yml'
+      # vendored
+      - 'docs/chrome-manifest-v3-schema.json'
+      # generated with SHAs
+      - 'yarn.lock'
+    keywords: ['BROKEN', 'BUG', 'ERROR', 'FIXME', 'HACK', 'OPTIMIZE', 'REVIEW', 'TODO', 'WTF', 'XXX']
   PythonFlake8:
     enabled: true
     on_warn: fail
@@ -53,12 +64,20 @@ PreCommit:
     enabled: true
   Punchlist:
     command: ['bundle', 'exec', 'punchlist']
-    exclude:
-      - 'yarn.lock'
-      # vendored
-      - 'docs/chrome-manifest-v3-schema.json'
     enabled: true
     problem_on_unmodified_line: warn
+    exclude:
+      # sorbet sure likes to crash
+      - 'core.*'
+      # don't freak out over line below
+      - '.overcommit.yml'
+      # vendored
+      - 'docs/chrome-manifest-v3-schema.json'
+      # generated with SHAs
+      - 'yarn.lock'
+  CustomScript:
+    enabled: true
+    required_executable: 'bin/git-commit-validate'
 
 #PostCheckout:
 #  ALL: # Special hook name that customizes all hooks of this type

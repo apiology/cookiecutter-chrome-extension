@@ -21,13 +21,15 @@ SOURCE_FILE_GLOBS = ['{src}/**/*.ts']
 
 SOURCE_FILES := $(shell ruby -e "puts Dir.glob($(SOURCE_FILE_GLOBS))")
 
-webpack: ## run webpack and tie together modules for use by browser
-	npx webpack
-
 chrome-extension-start: ## run webpack continuously and watch files
 	npm run chrome-extension-start
 
 start: chrome-extension-start ## run server continously and watch files for changes
+	echo "Teach me how to 'make start'"
+	exit 1
+
+webpack: ## run webpack and tie together modules for use by browser
+	npx webpack
 
 build-chrome-extension: webpack
 
@@ -37,9 +39,6 @@ package: package-chrome-extension
 
 package-chrome-extension: build-chrome-extension
 	cd dist/chrome-extension && zip -r ../../package.zip .
-
-typecheck: build-typecheck webpack ## validate types in code and configuration
-	jsonschema --instance static/chrome-extension/manifest.json docs/chrome-manifest-v3-schema.json
 
 types.installed: Gemfile.lock Gemfile.lock.installed ## Ensure typechecking dependencies are in place
 	touch types.installed
@@ -53,10 +52,13 @@ clean-typecheck: ## Refresh the easily-regenerated information that type checkin
 realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
 
 realclean: clean realclean-typecheck
-	rm -fr vendor .bundle
-	rm .make/*
-	rm *.installed
+	rm -fr vendor/bundle .bundle
+	rm -f .make/*
+	rm -f *.installed
 	rm -fr node_modules
+
+typecheck: build-typecheck webpack ## validate types in code and configuration
+	jsonschema --instance static/chrome-extension/manifest.json docs/chrome-manifest-v3-schema.json
 
 citypecheck: typecheck ## Run type check from CircleCI
 
