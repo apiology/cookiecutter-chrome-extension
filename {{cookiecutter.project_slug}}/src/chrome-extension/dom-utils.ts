@@ -10,13 +10,13 @@ export const ensureNotNull = <T>(value: T | null): T => {
   return value;
 };
 
-const ensureArrayType = <T>(value: any[], clazz: Class<T>): T[] => {
+const ensureArrayType = <T>(value: object[], clazz: Class<T>): T[] => {
   for (const element of value) {
     if (!(element instanceof clazz)) {
       throw new Error(`element is not a ${clazz.name}`);
     }
   }
-  return value;
+  return value as T[];
 };
 
 export const ensureHtmlElement = <T extends HTMLElement>(element: object | null,
@@ -77,18 +77,29 @@ export const htmlElementByClass = <T extends HTMLElement>(className: string,
 };
 
 // https://stackoverflow.com/questions/5525071/how-to-wait-until-an-element-exists
-export function waitForElement(selector: string): Promise<Element> {
-  return new Promise<Element>((resolve) => {
+export function waitForElement<T extends HTMLElement>(
+  selector: string,
+  clazz: Class<T>
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
     const e = document.querySelector(selector);
     if (e) {
-      resolve(e);
+      if (!(e instanceof clazz)) {
+        reject(new Error(`element with selector ${selector} not an ${clazz.name} as expected!`));
+      } else {
+        resolve(e);
+      }
     }
 
     const observer = new MutationObserver(() => {
       const element = document.querySelector(selector);
       if (element) {
-        resolve(element);
-        observer.disconnect();
+        if (!(element instanceof clazz)) {
+          reject(new Error(`element with selector ${selector} not an ${clazz.name} as expected!`));
+        } else {
+          resolve(element);
+          observer.disconnect();
+        }
       }
     });
 
