@@ -56,6 +56,7 @@ realclean: clean realclean-typecheck
 	rm -fr vendor .bundle
 	rm .make/*
 	rm *.installed
+	rm -fr node_modules
 
 citypecheck: typecheck ## Run type check from CircleCI
 
