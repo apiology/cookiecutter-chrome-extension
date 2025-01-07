@@ -21,6 +21,10 @@ SOURCE_FILE_GLOBS = ['{tests,hooks}/**/*.py']
 
 SOURCE_FILES := $(shell ruby -e "puts Dir.glob($(SOURCE_FILE_GLOBS))")
 
+start: ## run code continously and watch files for changes
+	echo "Teach me how to 'make start'"
+	exit 1
+
 types.installed: Gemfile.lock Gemfile.lock.installed ## Ensure typechecking dependencies are in place
 	touch types.installed
 
@@ -34,9 +38,9 @@ clean-typecheck: ## Refresh the easily-regenerated information that type checkin
 realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
 
 realclean: clean realclean-typecheck
-	rm -fr vendor .bundle
-	rm .make/*
-	rm *.installed
+	rm -fr vendor/bundle .bundle
+	rm -f .make/*
+	rm -f *.installed
 
 # https://app.circleci.com/pipelines/github/apiology/cookiecutter-pypackage/281/workflows/b85985a9-16d0-42c4-93d4-f965a111e090/jobs/366
 typecheck: build-typecheck ## run mypy against project
