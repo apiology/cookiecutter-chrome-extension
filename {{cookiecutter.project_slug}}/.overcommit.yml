@@ -38,6 +38,8 @@ PreCommit:
       - 'core.*'
       # don't freak out over line below
       - '.overcommit.yml'
+      # generated with SHAs
+      - 'yarn.lock'
     keywords: ['BROKEN', 'BUG', 'ERROR', 'FIXME', 'HACK', 'OPTIMIZE', 'REVIEW', 'TODO', 'WTF', 'XXX']
   PythonFlake8:
     enabled: true
@@ -71,6 +73,8 @@ PreCommit:
       - 'core.*'
       # don't freak out over line below
       - '.overcommit.yml'
+      # generated with SHAs
+      - 'yarn.lock'
   CustomScript:
     enabled: true
     required_executable: 'bin/git-commit-validate'
