@@ -27,6 +27,8 @@ webpack: ## run webpack and tie together modules for use by browser
 chrome-extension-start: ## run webpack continuously and watch files
 	npm run chrome-extension-start
 
+start: chrome-extension-start ## run server continously and watch files for changes
+
 build-chrome-extension: webpack
 
 build: build-chrome-extension
