@@ -66,10 +66,7 @@ ensure_yarn() {
 }
 
 ensure_npm_modules() {
-  # --prefer-offline: maximize use of yarn cache for speed
-  # --no-progress: progress bar creates artifacts in M-x shell
-  # --non-interactive: don't interrupt CI with a prompt
-  yarn install --prefer-offline --no-progress --non-interactive
+  make yarn.lock
 }
 
 apt_upgraded=0
