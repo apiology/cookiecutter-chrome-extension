@@ -1,4 +1,4 @@
-.PHONY: build-typecheck bundle_install cicoverage citypecheck citest citypecoverage clean clean-coverage clean-typecheck clean-typecoverage coverage default gem_dependencies help overcommit quality report-coverage report-coverage-to-codecov test typecheck typecoverage update_from_cookiecutter
+.PHONY: build build-typecheck bundle_install cicoverage citypecheck citest citypecoverage clean clean-coverage clean-typecheck clean-typecoverage coverage default gem_dependencies help overcommit quality repl report-coverage report-coverage-to-codecov test typecheck typecoverage update_from_cookiecutter
 .DEFAULT_GOAL := default
 
 define PRINT_HELP_PYSCRIPT
@@ -15,7 +15,7 @@ export PRINT_HELP_PYSCRIPT
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-default: clean-typecoverage typecheck typecoverage clean-coverage test coverage overcommit_branch quality ## run default typechecking, tests and quality
+default: clean-typecoverage build typecheck typecoverage clean-coverage test coverage overcommit_branch quality ## run default typechecking, tests and quality
 
 SOURCE_FILE_GLOBS = ['{config,lib,app,script}/**/*.rb', 'ext/**/*.{c,rb}']
 
@@ -24,6 +24,8 @@ SOURCE_FILES := $(shell ruby -e "puts Dir.glob($(SOURCE_FILE_GLOBS))")
 start: ## run code continously and watch files for changes
 	echo "Teach me how to 'make start'"
 	exit 1
+
+build: bundle_install pip_install build-typecheck ## Update 3rd party packages as well and produce any artifacts needed from code
 
 types.installed: Gemfile.lock Gemfile.lock.installed ## Ensure typechecking dependencies are in place
 	touch types.installed
@@ -74,7 +76,7 @@ gem_dependencies: .bundle/config
 Gemfile.lock.installed: Gemfile vendor/.keep
 	touch Gemfile.lock.installed
 
-vendor/.keep: Gemfile.lock
+vendor/.keep: Gemfile.lock .ruby-version
 	make gem_dependencies
 	bundle install
 	touch vendor/.keep
@@ -88,10 +90,10 @@ test: ## run tests quickly
 citest: test ## Run unit tests from CircleCI
 
 overcommit: ## run precommit quality checks
-	bundle exec overcommit --run
+	bin/overcommit --run
 
 overcommit_branch: ## run precommit quality checks only on changed files
-	@bundle exec overcommit_branch
+	@bin/overcommit_branch
 
 quality: overcommit ## run precommit quality checks
 
@@ -119,19 +121,17 @@ update_apt: .make/apt_updated
 cicoverage: citest report-coverage-to-codecov ## check code coverage
 
 update_from_cookiecutter: ## Bring in changes from template project used to create this repo
-	bundle exec overcommit --uninstall
+	bin/overcommit --uninstall
 	cookiecutter_project_upgrader --help >/dev/null
 	IN_COOKIECUTTER_PROJECT_UPGRADER=1 cookiecutter_project_upgrader || true
 	git checkout cookiecutter-template && git push --no-verify
-	git checkout main; overcommit --sign && overcommit --sign pre-commit && git checkout main && git pull && git checkout -b update-from-cookiecutter-$$(date +%Y-%m-%d-%H%M)
+	git checkout main; overcommit --sign && overcommit --sign pre-commit && overcommit --sign pre-push && git checkout main && git pull && git checkout -b update-from-cookiecutter-$$(date +%Y-%m-%d-%H%M)
 	git merge cookiecutter-template || true
 	git checkout --ours Gemfile.lock || true
 	# update frequently security-flagged gems while we're here
-	bundle update --conservative rexml || true
-	make build-typecheck
-	bundle install || true
-	git add Gemfile.lock || true
-	bundle exec overcommit --install || true
+	bundle update --conservative json rexml || true
+	( make build && git add Gemfile.lock ) || true
+	bin/overcommit --install || true
 	@echo
 	@echo "Please resolve any merge conflicts below and push up a PR with:"
 	@echo
