@@ -42,7 +42,7 @@ PreCommit:
       - 'docs/chrome-manifest-v3-schema.json'
       # generated with SHAs
       - 'yarn.lock'
-    keywords: ['BROKEN', 'BUG', 'ERROR', 'FIXME', 'HACK', 'OPTIMIZE', 'REVIEW', 'TODO', 'WTF', 'XXX']
+    keywords: ['BROKEN', 'BUG', 'FIXME', 'HACK', 'OPTIMIZE', 'REVIEW', 'TODO', 'WTF', 'XXX']
   PythonFlake8:
     enabled: true
     on_warn: fail
@@ -77,6 +77,7 @@ PreCommit:
       - 'yarn.lock'
   CustomScript:
     enabled: true
+    requires_files: false
     required_executable: 'bin/git-commit-validate'
 
 #PostCheckout:
