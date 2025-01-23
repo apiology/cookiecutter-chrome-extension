@@ -31,9 +31,9 @@ start: chrome-extension-start ## run server continously and watch files for chan
 webpack: ## run webpack and tie together modules for use by browser
 	npx webpack
 
-build-chrome-extension: webpack
+build-chrome-extension: yarn.lock webpack
 
-build: build-chrome-extension
+build: bundle_install yarn_install pip_install build-chrome-extension
 
 package: package-chrome-extension
 
@@ -81,6 +81,18 @@ Gemfile.lock: Gemfile
 	make .bundle/config
 	bundle lock
 
+yarn_install: yarn.lock.installed
+
+yarn.lock.installed: package.json node_modules/.keep
+	touch yarn.lock.installed
+
+yarn.lock: package.json
+	# --prefer-offline: maximize use of yarn cache for speed
+	# --no-progress: progress bar creates artifacts in M-x shell
+	# --non-interactive: don't interrupt CI with a prompt
+	yarn install --prefer-offline --no-progress --non-interactive
+	touch node_modules/.keep
+
 .bundle/config:
 	touch .bundle/config
 
@@ -95,6 +107,13 @@ vendor/.keep: Gemfile.lock
 	make gem_dependencies
 	bundle install
 	touch vendor/.keep
+
+node_modules/.keep: yarn.lock
+	# --prefer-offline: maximize use of yarn cache for speed
+	# --no-progress: progress bar creates artifacts in M-x shell
+	# --non-interactive: don't interrupt CI with a prompt
+	yarn install --prefer-offline --no-progress --non-interactive
+	touch node_modules/.keep
 
 bundle_install: Gemfile.lock.installed ## Install Ruby dependencies
 
@@ -159,12 +178,10 @@ update_from_cookiecutter: ## Bring in changes from template project used to crea
 	git checkout cookiecutter-template && git push --no-verify
 	git checkout main; overcommit --sign && overcommit --sign pre-commit && git checkout main && git pull && git checkout -b update-from-cookiecutter-$$(date +%Y-%m-%d-%H%M)
 	git merge cookiecutter-template || true
-	git checkout --ours Gemfile.lock || true
+	git checkout --ours Gemfile.lock yarn.lock || true
 	# update frequently security-flagged gems while we're here
 	bundle update --conservative rexml || true
-	make build-typecheck
-	bundle install || true
-	git add Gemfile.lock || true
+	( make build && git add Gemfile.lock yarn.lock ) || true
 	bundle exec overcommit --install || true
 	@echo
 	@echo "Please resolve any merge conflicts below and push up a PR with:"
