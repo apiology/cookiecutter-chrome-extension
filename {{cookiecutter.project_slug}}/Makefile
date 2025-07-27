@@ -1,4 +1,4 @@
-.PHONY: build build-typecheck bundle_install cicoverage citypecheck citest citypecoverage clean clean-coverage clean-typecheck clean-typecoverage coverage default gem_dependencies help overcommit quality repl report-coverage report-coverage-to-codecov test typecheck typecoverage update_from_cookiecutter
+.PHONY: build build-typecheck bundle_install cicoverage citypecheck citest citypecoverage clean clean-coverage clean-typecheck clean-typecoverage coverage default gem_dependencies help overcommit quality repl report-coverage report-coverage-to-codecov test typecheck typecoverage update_from_cookiecutter docs
 .DEFAULT_GOAL := default
 
 define PRINT_HELP_PYSCRIPT
@@ -17,7 +17,7 @@ help:
 
 default: clean-typecoverage build typecheck typecoverage clean-coverage test coverage overcommit_branch quality ## run default typechecking, tests and quality
 
-SOURCE_FILE_GLOBS = ['{config,lib,app,script}/**/*.rb', 'ext/**/*.{c,rb}']
+SOURCE_FILE_GLOBS = ['{config,lib,app,script,spec}/**/*.rb', 'ext/**/*.{c,rb}']
 
 SOURCE_FILES := $(shell ruby -e "puts Dir.glob($(SOURCE_FILE_GLOBS))")
 
@@ -32,6 +32,8 @@ types.installed: Gemfile.lock Gemfile.lock.installed ## Ensure typechecking depe
 
 build-typecheck: types.installed  ## Fetch information that type checking depends on
 
+docs: ## Generate documentation
+
 clean-typecheck: ## Refresh the easily-regenerated information that type checking depends on
 	rm -f types.installed
 	echo all clear
@@ -39,7 +41,7 @@ clean-typecheck: ## Refresh the easily-regenerated information that type checkin
 realclean-typecheck: clean-typecheck ## Remove all type checking artifacts
 
 realclean: clean realclean-typecheck
-	rm -fr vendor/bundle .bundle
+	rm -fr vendor/bundle .bundle/config
 	rm -f .make/*
 	rm -f *.installed
 
@@ -51,7 +53,7 @@ typecoverage: typecheck ## Run type checking and then ratchet coverage in metric
 
 clean-typecoverage: ## Clean out type-related coverage previous results to avoid flaky results
 
-citypecoverage: typecoverage ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
+citypecoverage: citypecheck ## Run type checking, ratchet coverage, and then complain if ratchet needs to be committed
 
 config/env: config/env.1p  ## Create file suitable for docker-compose usage
 	cat config/env.1p | cut -d= -f1 > config/env
@@ -62,9 +64,12 @@ requirements_dev.txt.installed: requirements_dev.txt
 
 pip_install: requirements_dev.txt.installed ## Install Python dependencies
 
-Gemfile.lock: Gemfile
-	make .bundle/config
-	bundle lock
+Gemfile.lock: Gemfile .bundle/config
+	if [ ! -f Gemfile.lock ]; then \
+	  bundle install; \
+	else \
+	  bundle lock; \
+	fi
 
 .bundle/config:
 	touch .bundle/config
@@ -93,7 +98,7 @@ overcommit: ## run precommit quality checks
 	bin/overcommit --run
 
 overcommit_branch: ## run precommit quality checks only on changed files
-	@bin/overcommit_branch
+	bin/overcommit --run --diff origin/main
 
 quality: overcommit ## run precommit quality checks
 

@@ -44,6 +44,8 @@ commands:
       - restore_cache:
           name: Restore rbenv cache
           keys:
+            - rbenv-v5-{{ checksum "Gemfile" }}-{{ checksum "Gemfile.lock" }}- {{ checksum "Makefile"  }}- {{ checksum ".circleci/config.yml" }}- # yamllint disable-line rule:line-length
+            - rbenv-v5-{{ checksum "Gemfile" }}-{{ checksum "Gemfile.lock" }}- {{ checksum "Makefile"  }}- # yamllint disable-line rule:line-length
             - rbenv-v5-{{ checksum "Gemfile" }}-{{ checksum "Gemfile.lock" }}-
             - rbenv-v5-{{ checksum "Gemfile" }}-
             - rbenv-v5-
@@ -70,14 +72,14 @@ commands:
           path: /tmp/fix_sh_timing.log
       - save_cache:
           name: 'Save pyenv cache'
-          key: pyenv-v2-{{ checksum "requirements_dev.txt" }}-{{ checksum ".python-version" }}
+          key: pyenv-v2-{{ checksum "requirements_dev.txt" }}-{{ checksum ".python-version" }} # yamllint disable-line rule:line-length
           paths:
             - "requirements_dev.txt.installed"
             - "/home/circleci/.cache/pip/wheels"
             - "/home/circleci/.pyenv"
       - save_cache:
           name: 'Save rbenv cache'
-          key: rbenv-v5-{{ checksum "Gemfile" }}-{{ checksum "Gemfile.lock" }}-{{ checksum ".ruby-version" }}-{{ checksum "Makefile" }}-{{ checksum ".circleci/config.yml" }} # yamllint disable-line rule:line-length
+          key: rbenv-v5-{{ checksum "Gemfile" }}-{{ checksum "Gemfile.lock" }}-{{ checksum "Makefile" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum ".ruby-version" }} # yamllint disable-line rule:line-length
           paths:
             - "Gemfile.lock.installed"
             - 'vendor/.keep'
@@ -100,10 +102,12 @@ commands:
             # Coax overcommit into working
             git config --global user.email "test@test.test"
             git config --global user.name "Test Test"
-            bundle exec overcommit --sign
-            bundle exec overcommit --sign pre-commit
+            bin/overcommit --sign
+            bin/overcommit --sign pre-commit
+            bin/overcommit --sign pre-push
 
-            bundle exec overcommit --run
+
+            bin/overcommit --run
   tox:
     description: "Run tox"
     parameters:
@@ -125,6 +129,7 @@ commands:
 
             tox <<parameters.tox_arguments>>
 
+            bin/overcommit --run
 jobs:
   quality:
     working_directory: ~/cookiecutter-chrome-extension
@@ -158,6 +163,14 @@ jobs:
                   bundle exec overcommit --sign
                   bundle exec overcommit --sign pre-commit
 
+                  # Set timezone as same on dev box for test consistency
+
+                  # https://stackoverflow.com/questions/44331836/apt-get-install-tzdata-noninteractive
+                  sudo ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+                  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
+                  export TZ=America/New_York
+                  date
+
                   # measuring slows down the script - only enable when you
                   # want to debug where this is spending time
 
@@ -172,11 +185,13 @@ jobs:
           steps:
             - tox
       - run:
-          name: Verify deltas
+          label: Verify deltas
           command: |
-            if ! git diff --exit-code .
+            if [ -n "$(git status --porcelain)" ]
             then
-              >&2 echo "Please resolve changes to avoid caching difficulties"
+              git status --porcelain
+              git diff -u .
+              >&2 echo "Please check in all files"
               exit 1
             fi
     # This seemed to shave 5ish% of the build time off when added
