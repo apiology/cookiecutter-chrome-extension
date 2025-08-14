@@ -64,6 +64,7 @@ ensure_node_versions() {
 ensure_yarn() {
   npm install -g corepack
   yarn set version stable </dev/null
+  touch yarn.lock # needs to exist for yarn install to work
   yarn install
 }
 
