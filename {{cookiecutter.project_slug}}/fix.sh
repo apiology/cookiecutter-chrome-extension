@@ -63,7 +63,6 @@ ensure_node_versions() {
 
 ensure_yarn() {
   npm install -g corepack
-  yarn set version stable </dev/null
   yarn install
 }
 
