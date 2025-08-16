@@ -127,5 +127,6 @@ set license_name = {
       "listItemIndent": "one"
     },
     "plugins": []
-  }
+  },
+  "packageManager": "yarn@4.9.2"
 }
