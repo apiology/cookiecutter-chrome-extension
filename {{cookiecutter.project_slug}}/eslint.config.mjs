@@ -77,7 +77,7 @@ export default defineConfig([
         }],
 
         "@stylistic/indent": ["error", 2, {
-          "returnType": 1
+          "FunctionDeclaration": { "returnType": 1 },
         }],
 
         "dot-notation": "off",
