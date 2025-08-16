@@ -26,7 +26,9 @@ export default defineConfig([
   ...airbnbBase,
   {
     extends: fixupConfigRules(compat.extends(
+        "eslint:recommended",
         "airbnb-base",
+        "plugin:import/recommended",
         "plugin:import/typescript",
         "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended",
@@ -73,6 +75,10 @@ export default defineConfig([
             exports: "always-multiline",
             functions: "never",
         }],
+
+        "@stylistic/indent": {
+          "returnType": 1
+        },
 
         "dot-notation": "off",
         "@typescript-eslint/dot-notation": "warn",
