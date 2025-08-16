@@ -29,7 +29,7 @@ start: chrome-extension-start ## run server continously and watch files for chan
 	exit 1
 
 webpack: ## run webpack and tie together modules for use by browser
-	npx webpack
+	yarn run webpack </dev/null
 
 build-chrome-extension: yarn.lock webpack
 
@@ -88,15 +88,13 @@ Gemfile.lock: Gemfile .bundle/config
 
 yarn_install: yarn.lock.installed
 
-yarn.lock.installed: package.json node_modules/.keep
+yarn.lock.installed: package.json
+	yarn install
 	touch yarn.lock.installed
 
 yarn.lock: package.json
-	# --prefer-offline: maximize use of yarn cache for speed
-	# --no-progress: progress bar creates artifacts in M-x shell
-	# --non-interactive: don't interrupt CI with a prompt
-	yarn install --prefer-offline --no-progress --non-interactive
-	touch node_modules/.keep
+	yarn install
+
 
 .bundle/config:
 	touch .bundle/config
@@ -112,13 +110,6 @@ vendor/.keep: Gemfile.lock .ruby-version
 	make gem_dependencies
 	bundle install
 	touch vendor/.keep
-
-node_modules/.keep: yarn.lock
-	# --prefer-offline: maximize use of yarn cache for speed
-	# --no-progress: progress bar creates artifacts in M-x shell
-	# --non-interactive: don't interrupt CI with a prompt
-	yarn install --prefer-offline --no-progress --non-interactive
-	touch node_modules/.keep
 
 bundle_install: Gemfile.lock.installed ## Install Ruby dependencies
 

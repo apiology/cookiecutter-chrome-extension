@@ -1,4 +1,4 @@
-import { chrome } from 'jest-chrome';
+import { chrome } from '@mobile-next/jest-chrome';
 import { doWork } from '../{{cookiecutter.project_slug}}.js';
 import { setPlatform } from '../platform.js';
 import { TestPlatform } from '../__mocks__/test-platform.js';

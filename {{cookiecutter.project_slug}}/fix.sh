@@ -1,5 +1,6 @@
 #!/bin/bash -eu
 
+set -x
 set -o pipefail
 
 if [ -n "${FIX_SH_TIMING_LOG+x}" ]; then
@@ -62,7 +63,9 @@ ensure_node_versions() {
 }
 
 ensure_yarn() {
-  npm install -g yarn
+  npm install -g corepack
+  yarn set version 4.9.2 </dev/null
+  YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 }
 
 ensure_npm_modules() {
@@ -253,22 +256,18 @@ ensure_bundle() {
   # Version <2.2.22 of bundler isn't compatible with Ruby 3.3:
   #
   # https://stackoverflow.com/questions/70800753/rails-calling-didyoumeanspell-checkers-mergeerror-name-spell-checker-h
-
-  # Version <2.2.9 doesn't seem to handle git branches during 'bundle lock' in some situations
-  #
-  # https://stackoverflow.com/questions/70800753/rails-calling-didyoumeanspell-checkers-mergeerror-name-spell-checker-h
   need_better_bundler=false
   if [ "${bundler_version_major}" -lt 2 ]
   then
     need_better_bundler=true
   elif [ "${bundler_version_major}" -eq 2 ]
   then
-    if [ "${bundler_version_minor}" -lt 6 ]
+    if [ "${bundler_version_minor}" -lt 2 ]
     then
       need_better_bundler=true
-    elif [ "${bundler_version_minor}" -eq 6 ]
+    elif [ "${bundler_version_minor}" -eq 2 ]
     then
-      if [ "${bundler_version_patch}" -lt 9 ]
+      if [ "${bundler_version_patch}" -lt 23 ]
       then
         need_better_bundler=true
       fi
@@ -277,10 +276,10 @@ ensure_bundle() {
   if [ "${need_better_bundler}" = true ]
   then
     >&2 echo "Original bundler version: ${bundler_version}"
-    gem install bundler:2.6.9
     # need to do this first before 'bundle update --bundler' will work
     make bundle_install
     bundle update --bundler
+    gem install bundler:2.2.23
     >&2 echo "Updated bundler version: $(bundle --version)"
     # ensure next step installs fresh bundle
     rm -f Gemfile.lock.installed
@@ -429,7 +428,7 @@ ensure_python_versions() {
 
 ensure_pyenv_virtualenvs() {
   latest_python_version="$(cut -d' ' -f1 <<< "${python_versions}")"
-  virtualenv_name="{{cookiecutter.project_slug}}-${latest_python_version}"
+  virtualenv_name="shortcuts-for-asana-${latest_python_version}"
   if ! [ -d ~/".pyenv/versions/${virtualenv_name}" ]
   then
     pyenv virtualenv "${latest_python_version}" "${virtualenv_name}" || true
