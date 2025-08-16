@@ -7,6 +7,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
+import airbnbBase from 'airbnb-eslint9';
+import stylistic from '@stylistic/eslint-plugin'
+import importPlugin from 'eslint-plugin-import';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +23,7 @@ export default defineConfig([
   {
     ignores: ['jest.setup.js', 'eslint.config.mjs', '.pnp*.*', '.pnp.cjs', 'coverage/**', 'dist/**', 'webpack.config.js', 'polyfills/**'],
   },
+  ...airbnbBase,
   {
     extends: fixupConfigRules(compat.extends(
         "airbnb-base",
@@ -29,6 +33,7 @@ export default defineConfig([
     )),
 
     plugins: {
+        "@stylistic": stylistic,
         "@typescript-eslint": fixupPluginRules(typescriptEslint),
     },
 
@@ -60,7 +65,8 @@ export default defineConfig([
         "no-alert": "off",
         "class-methods-use-this": ["off"],
 
-        "comma-dangle": ["error", {
+        "comma-dangle": "off",
+        "@stylistic/comma-dangle": ["error", {
             arrays: "always-multiline",
             objects: "always-multiline",
             imports: "always-multiline",
@@ -106,7 +112,8 @@ export default defineConfig([
         "prefer-regex-literals": "off",
         "@typescript-eslint/no-use-before-define": "warn",
     },
-}, {
+  },
+  {
     files: ["src/shortcuts-for-asana.test.ts"],
 
     rules: {
