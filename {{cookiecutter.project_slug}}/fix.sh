@@ -1,5 +1,6 @@
 #!/bin/bash -eu
 
+set -x
 set -o pipefail
 
 if [ -n "${FIX_SH_TIMING_LOG+x}" ]; then
@@ -63,7 +64,7 @@ ensure_node_versions() {
 
 ensure_yarn() {
   npm install -g corepack
-  yarn set version stable </dev/null
+  yarn set version 4.9.2 </dev/null
   touch yarn.lock # needs to exist for yarn install to work
   yarn install
 }
