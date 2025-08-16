@@ -76,9 +76,9 @@ export default defineConfig([
             functions: "never",
         }],
 
-        "@stylistic/indent": {
+        "@stylistic/indent": ["error", {
           "returnType": 1
-        },
+        }],
 
         "dot-notation": "off",
         "@typescript-eslint/dot-notation": "warn",
