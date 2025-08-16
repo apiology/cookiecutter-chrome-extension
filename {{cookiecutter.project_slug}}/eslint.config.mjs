@@ -76,7 +76,7 @@ export default defineConfig([
             functions: "never",
         }],
 
-        "@stylistic/indent": ["error", {
+        "@stylistic/indent": ["error", 2, {
           "returnType": 1
         }],
 
