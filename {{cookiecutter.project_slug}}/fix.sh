@@ -64,6 +64,7 @@ ensure_node_versions() {
 ensure_yarn() {
   npm install -g corepack
   yarn set version 4.9.2 </dev/null
+  touch yarn.lock
   YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 }
 
