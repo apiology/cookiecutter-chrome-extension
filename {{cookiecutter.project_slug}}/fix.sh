@@ -69,7 +69,7 @@ ensure_yarn() {
 }
 
 ensure_npm_modules() {
-  make yarn.lock
+  make yarn.lock.installed
 }
 
 apt_upgraded=0
