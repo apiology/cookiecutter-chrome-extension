@@ -61,9 +61,8 @@ commands:
       - restore_cache:
           name: Restore node_modules cache
           keys:
-            - node_modules-v1-{% raw %}{{ checksum "yarn.lock" }}{% endraw %}
-            - node_modules-v1-
-            - node_modules-
+            - node_modules-v2-{% raw %}{{ checksum "yarn.lock" }}{% endraw %}
+            - node_modules-v2-
       - run:
           name: Initialize packages
           no_output_timeout: 30m
@@ -96,7 +95,7 @@ commands:
               exit 1
             fi
       - save_cache:
-          key: node_modules-v1-{% raw %}{{ checksum "yarn.lock" }}{% endraw %}
+          key: node_modules-v2-{% raw %}{{ checksum "yarn.lock" }}{% endraw %}
           paths:
             - "/home/circleci/project/node_modules"
       - save_cache:
