@@ -474,7 +474,7 @@ ensure_shellcheck() {
 }
 
 ensure_hooks_path() {
-  if [ -d .git ]
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1
   then
     git config core.hooksPath .githooks
   fi
@@ -527,7 +527,7 @@ RUBY
 ensure_overcommit() {
   # don't run if we're in the middle of a cookiecutter child project
   # test, or otherwise don't have a Git repo to install hooks into...
-  if [ -d .git ]
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1
   then
     bundle exec overcommit --install
     bundle exec overcommit --sign
