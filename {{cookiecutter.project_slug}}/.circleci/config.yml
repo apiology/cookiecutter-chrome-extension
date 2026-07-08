@@ -177,7 +177,8 @@ jobs:
 
             make citest cicoverage
     # This seemed to shave 5ish% of the build time off when added
-    resource_class: large.gen2
+    # local: larger than template default for Jest/DOM; upstream: .gen2 sizing family
+    resource_class: xlarge.gen2
 
 workflows:
   version: 2
