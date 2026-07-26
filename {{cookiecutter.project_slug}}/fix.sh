@@ -67,9 +67,17 @@ ensure_node_versions() {
 
 ensure_yarn() {
   npm install -g corepack
-  yarn set version 4.9.2 </dev/null
+  # package.json's "packageManager" field pins the exact Yarn version;
+  # Corepack reads it automatically, so no explicit `yarn set version` here.
   touch yarn.lock
-  YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
+  if [ -s yarn.lock ]
+  then
+    yarn install
+  else
+    # Fresh cookiecutter bake: no committed lockfile yet, so it must be
+    # generated here rather than enforcing immutability against it.
+    YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
+  fi
 }
 
 ensure_npm_modules() {
